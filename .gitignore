@@ -1,0 +1,35 @@
+# Mac OS
+.DS_Store
+
+# Node Dependencies & Build Output
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Java Maven Target & IDE files
+target/
+backend/target/
+.idea/
+*.iml
+.settings/
+.classpath
+.project
+
+# Python Virtual Environment & Bytecode
+venv/
+ai-service/venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Large binaries & temp uploads
+*.mp4
+*.avi
+*.mov
+*.mkv
+!uploads/sample_traffic.mp4
+
+# Environment secrets
+.env
