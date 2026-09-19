@@ -5,8 +5,8 @@ import { TrafficLogo } from '../components/TrafficLogo';
 import { useAuth } from '../context/AuthContext';
 
 export const Login = () => {
-  const [email, setEmail] = useState('admin@velosight.ai');
-  const [password, setPassword] = useState('Admin@123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const { login, loading } = useAuth();
   const navigate = useNavigate();
 
@@ -42,6 +42,7 @@ export const Login = () => {
                 style={{ paddingLeft: '38px' }}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@example.com"
                 required
               />
               <Mail size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-dim)' }} />
@@ -57,6 +58,7 @@ export const Login = () => {
                 style={{ paddingLeft: '38px' }}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
                 required
               />
               <Lock size={18} style={{ position: 'absolute', left: '12px', top: '12px', color: 'var(--text-dim)' }} />
@@ -71,13 +73,6 @@ export const Login = () => {
 
         <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--border-color)', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
           Don't have an account? <Link to="/register" style={{ color: 'var(--primary-blue)', textDecoration: 'none', fontWeight: 600 }}>Register Access</Link>
-        </div>
-
-        {/* Demo Credentials Helper */}
-        <div style={{ marginTop: '20px', backgroundColor: 'var(--bg-card)', padding: '12px', borderRadius: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-          <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>Demo Credentials:</strong>
-          <div>Admin: <code>admin@velosight.ai</code> / <code>Admin@123</code></div>
-          <div>Analyst: <code>analyst@velosight.ai</code> / <code>Analyst@123</code></div>
         </div>
 
       </div>

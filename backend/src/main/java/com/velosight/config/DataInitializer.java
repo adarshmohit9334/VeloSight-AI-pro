@@ -56,36 +56,7 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedUsers() {
-        User admin = User.builder()
-                .name("System Administrator")
-                .email("admin@velosight.ai")
-                .password(passwordEncoder.encode("Admin@123"))
-                .role("ADMIN")
-                .createdAt(LocalDateTime.now())
-                .lastLogin(LocalDateTime.now())
-                .build();
-
-        User analyst = User.builder()
-                .name("Traffic Analyst")
-                .email("analyst@velosight.ai")
-                .password(passwordEncoder.encode("Analyst@123"))
-                .role("ANALYST")
-                .createdAt(LocalDateTime.now())
-                .lastLogin(LocalDateTime.now())
-                .build();
-
-        User operator = User.builder()
-                .name("Control Room Operator")
-                .email("operator@velosight.ai")
-                .password(passwordEncoder.encode("Operator@123"))
-                .role("OPERATOR")
-                .createdAt(LocalDateTime.now())
-                .lastLogin(LocalDateTime.now())
-                .build();
-
-        userRepository.save(admin);
-        userRepository.save(analyst);
-        userRepository.save(operator);
+        // Dummy users auto-seeding disabled as requested by user.
     }
 
     private void seedIntersectionsAndCameras() {
