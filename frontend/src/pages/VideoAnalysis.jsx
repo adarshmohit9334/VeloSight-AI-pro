@@ -32,9 +32,7 @@ export const VideoAnalysis = () => {
       formData.append('file', selectedFile);
       formData.append('cameraId', cameraId);
 
-      const uploadRes = await API.post('/analysis/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const uploadRes = await API.post('/analysis/upload', formData);
 
       const { analysisId } = uploadRes.data;
 

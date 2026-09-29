@@ -22,17 +22,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   const [user, setUser] = useState(() => {
+    const savedToken = localStorage.getItem('velosight_token');
+    if (savedToken === 'demo_jwt_token_123' || savedToken === 'demo_fallback_token') {
+      localStorage.removeItem('velosight_user');
+      localStorage.removeItem('velosight_token');
+    }
     const savedUser = localStorage.getItem('velosight_user');
-    let parsed = savedUser ? JSON.parse(savedUser) : {
-      id: 1,
-      name: 'System Administrator',
-      email: 'admin@velosight.ai',
-      role: 'ADMIN'
-    };
-    parsed.profilePhoto = getProfilePhoto(parsed.email);
+    let parsed = savedUser ? JSON.parse(savedUser) : null;
+    if (parsed) {
+      parsed.profilePhoto = getProfilePhoto(parsed.email);
+    }
     return parsed;
   });
-  const [token, setToken] = useState(() => localStorage.getItem('velosight_token') || 'demo_jwt_token_123');
+  const [token, setToken] = useState(() => localStorage.getItem('velosight_token') || null);
   const [demoMode, setDemoMode] = useState(false);
   const [loading, setLoading] = useState(false);
 
