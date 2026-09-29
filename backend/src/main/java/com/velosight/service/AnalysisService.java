@@ -278,6 +278,14 @@ public class AnalysisService {
         return convertToDto(session);
     }
 
+    @org.springframework.transaction.annotation.Transactional
+    public void deleteAnalysis(String analysisIdStr) {
+        AnalysisSession session = analysisSessionRepository.findByAnalysisIdStr(analysisIdStr)
+                .orElseThrow(() -> new RuntimeException("Analysis not found: " + analysisIdStr));
+        trafficMetricRepository.deleteByAnalysisSession(session);
+        analysisSessionRepository.delete(session);
+    }
+
     private AnalysisResultDto convertToDto(AnalysisSession session) {
         Map<String, Integer> counts = new HashMap<>();
         counts.put("car", session.getCarCount() != null ? session.getCarCount() : 0);

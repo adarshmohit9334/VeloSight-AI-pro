@@ -56,7 +56,11 @@ public class AnalysisController {
         String videoPath = "processed/" + id + "_processed.mp4";
         File file = new File(videoPath);
         if (!file.exists()) {
-            file = new File("uploads/" + dto.getVideoFilename());
+            String extension = "";
+            if (dto.getVideoFilename() != null && dto.getVideoFilename().contains(".")) {
+                extension = dto.getVideoFilename().substring(dto.getVideoFilename().lastIndexOf("."));
+            }
+            file = new File("uploads/" + id + extension);
         }
 
         if (!file.exists()) {
@@ -68,5 +72,16 @@ public class AnalysisController {
                 .contentType(MediaType.parseMediaType("video/mp4"))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getName() + "\"")
                 .body(resource);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteAnalysis(@PathVariable("id") String id) {
+        analysisService.deleteAnalysis(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleException(Exception e) {
+        return ResponseEntity.badRequest().body("Error: " + e.getMessage());
     }
 }

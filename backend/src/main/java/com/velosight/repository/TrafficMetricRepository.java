@@ -8,4 +8,5 @@ import java.util.List;
 public interface TrafficMetricRepository extends JpaRepository<TrafficMetric, Long> {
     List<TrafficMetric> findTop24ByOrderByTimestampDesc();
     List<TrafficMetric> findByTimestampBetween(LocalDateTime start, LocalDateTime end);
+    void deleteByAnalysisSession(com.velosight.entity.AnalysisSession session);
 }
