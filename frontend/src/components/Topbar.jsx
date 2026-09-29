@@ -30,11 +30,6 @@ export const Topbar = () => {
         <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>
           VeloSight Control Center
         </h2>
-        {demoMode && (
-          <span className="badge badge-info" style={{ animation: 'pulse 2s infinite' }}>
-            DEMO MODE ENABLED
-          </span>
-        )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -47,15 +42,7 @@ export const Topbar = () => {
           </span>
         </div>
 
-        {/* Demo Mode Switch */}
-        <button
-          onClick={toggleDemoMode}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', border: 'none', color: varDemoColor(demoMode), cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
-          title="Toggle Demo Mode for presentations"
-        >
-          {demoMode ? <ToggleRight size={24} color="#38bdf8" /> : <ToggleLeft size={24} color="#64748b" />}
-          <span>Demo Mode</span>
-        </button>
+
 
         {/* Notifications Icon */}
         <div style={{ position: 'relative' }}>
@@ -96,5 +83,3 @@ export const Topbar = () => {
     </header>
   );
 };
-
-const varDemoColor = (demo) => (demo ? '#38bdf8' : '#94a3b8');

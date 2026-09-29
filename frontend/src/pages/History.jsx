@@ -16,10 +16,7 @@ export const History = () => {
       const res = await API.get('/analysis');
       setSessions(res.data);
     } catch (e) {
-      setSessions([
-        { id: 1, analysisId: 'VS-DEMO-001', videoFilename: 'traffic_peak_hour.mp4', totalVehicles: 156, densityLevel: 'HIGH', congestionLevel: 'HIGH', status: 'COMPLETED', createdAt: new Date() },
-        { id: 2, analysisId: 'VS-DEMO-002', videoFilename: 'highway_flow_morning.mp4', totalVehicles: 88, densityLevel: 'MODERATE', congestionLevel: 'LOW', status: 'COMPLETED', createdAt: new Date(Date.now() - 7200000) }
-      ]);
+      setSessions([]);
     }
   };
 

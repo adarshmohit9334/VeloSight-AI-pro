@@ -16,11 +16,7 @@ export const Alerts = () => {
       const res = await API.get('/alerts');
       setAlerts(res.data);
     } catch (e) {
-      setAlerts([
-        { id: 1, type: 'HIGH_CONGESTION', severity: 'CRITICAL', message: 'Severe traffic queue buildup detected at Central Avenue North Approach (Score: 84%).', intersectionName: 'Central Crossing', status: 'ACTIVE', timestamp: new Date() },
-        { id: 2, type: 'POTENTIAL_INCIDENT', severity: 'HIGH', message: 'Unusual stationary vehicle cluster detected near IT Corridor Phase 1 lane 2.', intersectionName: 'North Plaza', status: 'ACTIVE', timestamp: new Date() },
-        { id: 3, type: 'CAMERA_OFFLINE', severity: 'MEDIUM', message: 'Camera CAM-WEST-01 lost RTSP signal ping.', intersectionName: 'West Intersect', status: 'ACKNOWLEDGED', timestamp: new Date(Date.now() - 3600000) }
-      ]);
+      setAlerts([]);
     }
   };
 
@@ -29,7 +25,7 @@ export const Alerts = () => {
       await API.put(`/alerts/${id}/acknowledge`);
       fetchAlerts();
     } catch (e) {
-      setAlerts(alerts.map(a => a.id === id ? { ...a, status: 'ACKNOWLEDGED' } : a));
+      console.error(e);
     }
   };
 
@@ -38,7 +34,7 @@ export const Alerts = () => {
       await API.put(`/alerts/${id}/resolve`);
       fetchAlerts();
     } catch (e) {
-      setAlerts(alerts.map(a => a.id === id ? { ...a, status: 'RESOLVED' } : a));
+      console.error(e);
     }
   };
 

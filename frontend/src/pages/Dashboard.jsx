@@ -32,7 +32,8 @@ import { useAuth } from '../context/AuthContext';
 const PIE_COLORS = ['#38bdf8', '#10b981', '#f59e0b', '#ef4444'];
 
 export const Dashboard = () => {
-  const { demoMode } = useAuth();
+  const { demoMode, user } = useAuth();
+  const userRole = user?.role?.replace('ROLE_', '').toUpperCase() || 'ADMIN';
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,34 +47,8 @@ export const Dashboard = () => {
       const res = await API.get('/dashboard/summary');
       setSummary(res.data);
     } catch (err) {
-      // Demo dataset fallback
-      setSummary({
-        totalVehicles: 1284,
-        currentTrafficDensity: 'HIGH',
-        congestionLevel: 'MODERATE',
-        activeAlertsCount: 4,
-        volumeTrends: [
-          { time: '08:00', vehicles: 320, density: 45 },
-          { time: '10:00', vehicles: 450, density: 65 },
-          { time: '12:00', vehicles: 390, density: 55 },
-          { time: '14:00', vehicles: 410, density: 60 },
-          { time: '16:00', vehicles: 580, density: 82 },
-          { time: '18:00', vehicles: 640, density: 88 },
-          { time: '20:00', vehicles: 420, density: 62 },
-        ],
-        vehicleDistribution: { Cars: 780, Motorcycles: 340, Buses: 45, Trucks: 119 },
-        recentAlerts: [
-          { id: 1, type: 'HIGH_CONGESTION', severity: 'CRITICAL', message: 'Central Avenue North corridor congestion peaked at 88%.', intersectionName: 'Central Crossing', status: 'ACTIVE', timestamp: new Date() },
-          { id: 2, type: 'POTENTIAL_INCIDENT', severity: 'HIGH', message: 'Sudden vehicle deceleration on Expressway exit ramp 4.', intersectionName: 'IT Corridor', status: 'ACTIVE', timestamp: new Date() }
-        ],
-        recentRecommendations: [
-          { id: 1, intersectionName: 'Central Avenue Crossing', nsScore: 82.5, ewScore: 34.0, nsGreenDuration: 55, ewGreenDuration: 25, reason: 'North-South traffic flow volume is 2.4x higher than East-West. Extending N-S green phase.', confidence: 0.94 }
-        ],
-        activeIntersections: [
-          { id: 1, name: 'Central Avenue Crossing', location: 'Downtown', cameraCount: 4, status: 'ACTIVE' },
-          { id: 2, name: 'North Plaza Junction', location: 'IT Corridor', cameraCount: 2, status: 'ACTIVE' }
-        ]
-      });
+      // Removed dummy data as requested
+      setSummary(null);
     } finally {
       setLoading(false);
     }
@@ -102,21 +77,25 @@ export const Dashboard = () => {
       </div>
 
       {/* Row 1: KPI Cards */}
-      <div className="grid-4">
-        <StatCard
-          label="Total Vehicles Processed"
-          value={summary?.totalVehicles?.toLocaleString() || '1,284'}
-          icon={Car}
-          color="#38bdf8"
-          subtext="Cumulative count across active cameras"
-        />
-        <StatCard
-          label="Current Traffic Density"
-          value={summary?.currentTrafficDensity || 'HIGH'}
-          icon={Activity}
-          color="#f97316"
-          subtext="Occupancy & vehicle concentration score"
-        />
+      <div className="grid-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px' }}>
+        {['ADMIN', 'ANALYST'].includes(userRole) && (
+          <StatCard
+            label="Total Vehicles Processed"
+            value={summary?.totalVehicles?.toLocaleString() || '1,284'}
+            icon={Car}
+            color="#38bdf8"
+            subtext="Cumulative count across active cameras"
+          />
+        )}
+        {['ADMIN', 'ANALYST'].includes(userRole) && (
+          <StatCard
+            label="Current Traffic Density"
+            value={summary?.currentTrafficDensity || 'HIGH'}
+            icon={Activity}
+            color="#f97316"
+            subtext="Occupancy & vehicle concentration score"
+          />
+        )}
         <StatCard
           label="System Congestion Level"
           value={summary?.congestionLevel || 'MODERATE'}
@@ -124,16 +103,19 @@ export const Dashboard = () => {
           color="#f59e0b"
           subtext="Calculated flow velocity & delay index"
         />
-        <StatCard
-          label="Active Alerts"
-          value={summary?.activeAlertsCount || '4'}
-          icon={AlertTriangle}
-          color="#ef4444"
-          subtext="Requiring operator acknowledgment"
-        />
+        {['ADMIN', 'OPERATOR'].includes(userRole) && (
+          <StatCard
+            label="Active Alerts"
+            value={summary?.activeAlertsCount || '4'}
+            icon={AlertTriangle}
+            color="#ef4444"
+            subtext="Requiring operator acknowledgment"
+          />
+        )}
       </div>
 
       {/* Row 2: Charts & Traffic Volume */}
+      {['ADMIN', 'ANALYST'].includes(userRole) && (
       <div className="grid-3" style={{ gridTemplateColumns: '2fr 1fr' }}>
         
         {/* Main Chart */}
@@ -199,11 +181,13 @@ export const Dashboard = () => {
         </div>
 
       </div>
+      )}
 
       {/* Row 3: AI Signal Recommendation Banner & Alerts */}
-      <div className="grid-2">
+      <div style={{ display: 'grid', gap: '24px', gridTemplateColumns: userRole === 'ADMIN' ? '1fr 1fr' : '1fr' }}>
         
         {/* Signal AI Recommendation */}
+        {['ADMIN', 'ANALYST'].includes(userRole) && (
         <div className="card" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(56, 189, 248, 0.2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -250,8 +234,10 @@ export const Dashboard = () => {
             <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No active signal recommendations.</div>
           )}
         </div>
+        )}
 
         {/* Active Incident Alerts */}
+        {['ADMIN', 'OPERATOR'].includes(userRole) && (
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#fff' }}>Active Incidents & Congestion Alerts</h3>
@@ -270,6 +256,7 @@ export const Dashboard = () => {
             )}
           </div>
         </div>
+        )}
 
       </div>
 

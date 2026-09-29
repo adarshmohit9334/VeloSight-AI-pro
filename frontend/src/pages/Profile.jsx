@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { User, Shield, Key, CheckCircle } from 'lucide-react';
+import { User, Shield, Key, CheckCircle, Camera } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const Profile = () => {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [success, setSuccess] = useState(false);
@@ -14,6 +14,17 @@ export const Profile = () => {
     setOldPassword('');
     setNewPassword('');
     setTimeout(() => setSuccess(false), 3000);
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateUser({ profilePhoto: reader.result });
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -29,8 +40,18 @@ export const Profile = () => {
         {/* User Identity Card */}
         <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--primary-glow)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 'bold' }}>
-              {user?.name ? user.name[0] : 'A'}
+            <div style={{ position: 'relative' }}>
+              <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--primary-glow)', color: 'var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 'bold', overflow: 'hidden' }}>
+                {user?.profilePhoto ? (
+                  <img src={user.profilePhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  user?.name ? user.name[0] : 'A'
+                )}
+              </div>
+              <label style={{ position: 'absolute', bottom: '-4px', right: '-4px', background: 'var(--primary-blue)', color: '#fff', borderRadius: '50%', padding: '4px', cursor: 'pointer', display: 'flex' }} title="Upload Photo">
+                <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePhotoUpload} />
+                <Camera size={14} />
+              </label>
             </div>
             <div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff' }}>{user?.name || 'Administrator'}</h3>

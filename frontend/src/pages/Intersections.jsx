@@ -17,10 +17,7 @@ export const Intersections = () => {
       const res = await API.get('/intersections');
       setIntersections(res.data);
     } catch (e) {
-      setIntersections([
-        { id: 1, name: 'Central Avenue Crossing', location: 'Downtown Sector 4', latitude: 18.5204, longitude: 73.8567, status: 'ACTIVE', cameraCount: 2 },
-        { id: 2, name: 'North Plaza Junction', location: 'IT Corridor Phase 1', latitude: 18.5314, longitude: 73.8446, status: 'ACTIVE', cameraCount: 2 }
-      ]);
+      setIntersections([]);
     }
   };
 
@@ -31,7 +28,7 @@ export const Intersections = () => {
       setIsModalOpen(false);
       fetchIntersections();
     } catch (e) {
-      setIntersections([...intersections, { ...formData, id: Date.now(), cameraCount: 0 }]);
+      console.error('Failed to create intersection', e);
       setIsModalOpen(false);
     }
   };

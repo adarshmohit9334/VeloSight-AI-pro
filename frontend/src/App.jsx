@@ -38,6 +38,16 @@ const ProtectedLayout = ({ children }) => {
   );
 };
 
+const RoleProtectedRoute = ({ children, allowedRoles }) => {
+  const { user } = useAuth();
+  const userRole = user?.role?.replace('ROLE_', '').toUpperCase() || 'ADMIN';
+  
+  if (allowedRoles && !allowedRoles.includes(userRole)) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return children;
+};
+
 export default function App() {
   return (
     <AuthProvider>
@@ -47,16 +57,16 @@ export default function App() {
           <Route path="/register" element={<Register />} />
 
           <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />
-          <Route path="/live-monitoring" element={<ProtectedLayout><LiveMonitoring /></ProtectedLayout>} />
-          <Route path="/video-analysis" element={<ProtectedLayout><VideoAnalysis /></ProtectedLayout>} />
-          <Route path="/analytics" element={<ProtectedLayout><Analytics /></ProtectedLayout>} />
-          <Route path="/intersections" element={<ProtectedLayout><Intersections /></ProtectedLayout>} />
-          <Route path="/cameras" element={<ProtectedLayout><Cameras /></ProtectedLayout>} />
-          <Route path="/alerts" element={<ProtectedLayout><Alerts /></ProtectedLayout>} />
-          <Route path="/signal-recommendations" element={<ProtectedLayout><SignalRecommendations /></ProtectedLayout>} />
+          <Route path="/live-monitoring" element={<ProtectedLayout><RoleProtectedRoute allowedRoles={['ADMIN', 'OPERATOR']}><LiveMonitoring /></RoleProtectedRoute></ProtectedLayout>} />
+          <Route path="/video-analysis" element={<ProtectedLayout><RoleProtectedRoute allowedRoles={['ADMIN', 'ANALYST']}><VideoAnalysis /></RoleProtectedRoute></ProtectedLayout>} />
+          <Route path="/analytics" element={<ProtectedLayout><RoleProtectedRoute allowedRoles={['ADMIN', 'ANALYST']}><Analytics /></RoleProtectedRoute></ProtectedLayout>} />
+          <Route path="/intersections" element={<ProtectedLayout><RoleProtectedRoute allowedRoles={['ADMIN']}><Intersections /></RoleProtectedRoute></ProtectedLayout>} />
+          <Route path="/cameras" element={<ProtectedLayout><RoleProtectedRoute allowedRoles={['ADMIN']}><Cameras /></RoleProtectedRoute></ProtectedLayout>} />
+          <Route path="/alerts" element={<ProtectedLayout><RoleProtectedRoute allowedRoles={['ADMIN', 'OPERATOR']}><Alerts /></RoleProtectedRoute></ProtectedLayout>} />
+          <Route path="/signal-recommendations" element={<ProtectedLayout><RoleProtectedRoute allowedRoles={['ADMIN', 'ANALYST']}><SignalRecommendations /></RoleProtectedRoute></ProtectedLayout>} />
           <Route path="/history" element={<ProtectedLayout><History /></ProtectedLayout>} />
-          <Route path="/reports" element={<ProtectedLayout><Reports /></ProtectedLayout>} />
-          <Route path="/settings" element={<ProtectedLayout><Settings /></ProtectedLayout>} />
+          <Route path="/reports" element={<ProtectedLayout><RoleProtectedRoute allowedRoles={['ADMIN', 'ANALYST']}><Reports /></RoleProtectedRoute></ProtectedLayout>} />
+          <Route path="/settings" element={<ProtectedLayout><RoleProtectedRoute allowedRoles={['ADMIN']}><Settings /></RoleProtectedRoute></ProtectedLayout>} />
           <Route path="/profile" element={<ProtectedLayout><Profile /></ProtectedLayout>} />
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

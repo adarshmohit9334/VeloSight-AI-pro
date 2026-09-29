@@ -24,16 +24,7 @@ export const Analytics = () => {
   };
 
   const setDefaultData = () => {
-    setData([
-      { time: '06:00', volume: 140, density: 25, congestion: 15, avgSpeed: 52 },
-      { time: '08:00', volume: 420, density: 78, congestion: 68, avgSpeed: 24 },
-      { time: '10:00', volume: 310, density: 55, congestion: 45, avgSpeed: 38 },
-      { time: '12:00', volume: 250, density: 42, congestion: 30, avgSpeed: 44 },
-      { time: '14:00', volume: 280, density: 48, congestion: 38, avgSpeed: 41 },
-      { time: '16:00', volume: 490, density: 85, congestion: 79, avgSpeed: 22 },
-      { time: '18:00', volume: 560, density: 92, congestion: 88, avgSpeed: 18 },
-      { time: '20:00', volume: 310, density: 58, congestion: 50, avgSpeed: 36 },
-    ]);
+    setData([]);
   };
 
   const exportCSV = () => {
@@ -68,25 +59,25 @@ export const Analytics = () => {
         <div className="card">
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>PEAK TRAFFIC VOLUME HOUR</div>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#38bdf8', marginTop: '4px', fontFamily: 'var(--font-mono)' }}>
-            18:00 - 19:00
+            {data.length > 0 ? '18:00 - 19:00' : 'N/A'}
           </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>560 vehicles/hour average</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>{data.length > 0 ? '560 vehicles/hour average' : 'Waiting for data...'}</div>
         </div>
 
         <div className="card">
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>AVERAGE CORRIDOR SPEED DECAY</div>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f59e0b', marginTop: '4px', fontFamily: 'var(--font-mono)' }}>
-            -65.3%
+            {data.length > 0 ? '-65.3%' : 'N/A'}
           </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Speed drops from 52 to 18 km/h during peak</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>{data.length > 0 ? 'Speed drops from 52 to 18 km/h during peak' : 'Waiting for data...'}</div>
         </div>
 
         <div className="card">
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>AVERAGE DAILY SYSTEM DENSITY</div>
           <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#10b981', marginTop: '4px', fontFamily: 'var(--font-mono)' }}>
-            60.1%
+            {data.length > 0 ? '60.1%' : 'N/A'}
           </div>
-          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>Optimal operating range</div>
+          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '4px' }}>{data.length > 0 ? 'Optimal operating range' : 'Waiting for data...'}</div>
         </div>
       </div>
 

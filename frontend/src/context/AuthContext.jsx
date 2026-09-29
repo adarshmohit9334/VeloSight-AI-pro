@@ -4,14 +4,33 @@ import API from '../services/api';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  const getProfilePhoto = (email) => {
+    try {
+      const photos = JSON.parse(localStorage.getItem('velosight_profile_photos') || '{}');
+      return photos[email] || null;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const saveProfilePhoto = (email, photoUrl) => {
+    try {
+      const photos = JSON.parse(localStorage.getItem('velosight_profile_photos') || '{}');
+      photos[email] = photoUrl;
+      localStorage.setItem('velosight_profile_photos', JSON.stringify(photos));
+    } catch (e) {}
+  };
+
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('velosight_user');
-    return savedUser ? JSON.parse(savedUser) : {
+    let parsed = savedUser ? JSON.parse(savedUser) : {
       id: 1,
       name: 'System Administrator',
       email: 'admin@velosight.ai',
       role: 'ADMIN'
     };
+    parsed.profilePhoto = getProfilePhoto(parsed.email);
+    return parsed;
   });
   const [token, setToken] = useState(() => localStorage.getItem('velosight_token') || 'demo_jwt_token_123');
   const [demoMode, setDemoMode] = useState(false);
@@ -22,6 +41,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await API.post('/auth/login', { email, password });
       const { accessToken, user: userData } = res.data;
+      userData.profilePhoto = getProfilePhoto(userData.email);
       localStorage.setItem('velosight_token', accessToken);
       localStorage.setItem('velosight_user', JSON.stringify(userData));
       setToken(accessToken);
@@ -35,6 +55,7 @@ export const AuthProvider = ({ children }) => {
         email: email,
         role: email.includes('admin') ? 'ADMIN' : 'ANALYST'
       };
+      fallbackUser.profilePhoto = getProfilePhoto(fallbackUser.email);
       localStorage.setItem('velosight_token', 'demo_fallback_token');
       localStorage.setItem('velosight_user', JSON.stringify(fallbackUser));
       setUser(fallbackUser);
@@ -50,6 +71,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await API.post('/auth/register', { name, email, password, role });
       const { accessToken, user: userData } = res.data;
+      userData.profilePhoto = getProfilePhoto(userData.email);
       localStorage.setItem('velosight_token', accessToken);
       localStorage.setItem('velosight_user', JSON.stringify(userData));
       setToken(accessToken);
@@ -57,6 +79,7 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (err) {
       const fallbackUser = { id: 2, name, email, role: role || 'ANALYST' };
+      fallbackUser.profilePhoto = getProfilePhoto(fallbackUser.email);
       localStorage.setItem('velosight_token', 'demo_fallback_token');
       localStorage.setItem('velosight_user', JSON.stringify(fallbackUser));
       setUser(fallbackUser);
@@ -78,8 +101,17 @@ export const AuthProvider = ({ children }) => {
     setDemoMode((prev) => !prev);
   };
 
+  const updateUser = (updates) => {
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    localStorage.setItem('velosight_user', JSON.stringify(updatedUser));
+    if (updates.profilePhoto && updatedUser.email) {
+      saveProfilePhoto(updatedUser.email, updates.profilePhoto);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout, demoMode, toggleDemoMode, loading }}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, demoMode, toggleDemoMode, loading, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

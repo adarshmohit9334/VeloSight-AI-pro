@@ -12,17 +12,7 @@ export const Reports = () => {
       const res = await API.get(`/reports/traffic?startDate=${startDate}&endDate=${endDate}`);
       setReport(res.data);
     } catch (e) {
-      setReport({
-        title: 'VeloSight AI — Executive Traffic Monitoring Report',
-        generatedAt: new Date().toLocaleString(),
-        period: `${startDate} to ${endDate}`,
-        totalAnalysesRun: 42,
-        totalVehiclesCounted: 14285,
-        averageCongestionScore: 58.4,
-        averageDensityScore: 64.2,
-        highCongestionIncidents: 12,
-        status: 'VALIDATED'
-      });
+      setReport(null);
     }
   };
 

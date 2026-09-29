@@ -15,30 +15,7 @@ export const SignalRecommendations = () => {
       const res = await API.get('/recommendations');
       setRecommendations(res.data);
     } catch (e) {
-      setRecommendations([
-        {
-          id: 1,
-          intersectionName: 'Central Avenue Crossing',
-          nsScore: 82.5,
-          ewScore: 34.0,
-          nsGreenDuration: 55,
-          ewGreenDuration: 25,
-          reason: 'North-South traffic corridor currently exhibits 2.4x higher density compared to East-West. Extending N-S green phase duration.',
-          confidence: 0.94,
-          createdAt: new Date()
-        },
-        {
-          id: 2,
-          intersectionName: 'North Plaza Junction',
-          nsScore: 48.0,
-          ewScore: 78.2,
-          nsGreenDuration: 30,
-          ewGreenDuration: 50,
-          reason: 'East-West IT corridor traffic density is significantly elevated. Reallocating green duration to E-W phase.',
-          confidence: 0.91,
-          createdAt: new Date(Date.now() - 1800000)
-        }
-      ]);
+      setRecommendations([]);
     }
   };
 

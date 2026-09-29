@@ -21,17 +21,19 @@ import { useAuth } from '../context/AuthContext';
 export const Sidebar = () => {
   const { user } = useAuth();
 
+  const userRole = user?.role?.replace('ROLE_', '').toUpperCase() || 'ADMIN';
+
   const navItems = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Live Monitoring', path: '/live-monitoring', icon: Video },
-    { label: 'Video Analysis', path: '/video-analysis', icon: FileSearch },
-    { label: 'Analytics', path: '/analytics', icon: BarChart3 },
-    { label: 'Intersections', path: '/intersections', icon: MapPin },
-    { label: 'Cameras', path: '/cameras', icon: Camera },
-    { label: 'Alerts', path: '/alerts', icon: AlertTriangle },
-    { label: 'Signal AI', path: '/signal-recommendations', icon: SlidersHorizontal },
+    { label: 'Live Monitoring', path: '/live-monitoring', icon: Video, roles: ['ADMIN', 'OPERATOR'] },
+    { label: 'Video Analysis', path: '/video-analysis', icon: FileSearch, roles: ['ADMIN', 'ANALYST'] },
+    { label: 'Analytics', path: '/analytics', icon: BarChart3, roles: ['ADMIN', 'ANALYST'] },
+    { label: 'Intersections', path: '/intersections', icon: MapPin, roles: ['ADMIN'] },
+    { label: 'Cameras', path: '/cameras', icon: Camera, roles: ['ADMIN'] },
+    { label: 'Alerts', path: '/alerts', icon: AlertTriangle, roles: ['ADMIN', 'OPERATOR'] },
+    { label: 'Signal AI', path: '/signal-recommendations', icon: SlidersHorizontal, roles: ['ADMIN', 'ANALYST'] },
     { label: 'History', path: '/history', icon: History },
-    { label: 'Reports', path: '/reports', icon: FileText },
+    { label: 'Reports', path: '/reports', icon: FileText, roles: ['ADMIN', 'ANALYST'] },
   ];
 
   return (
@@ -48,7 +50,7 @@ export const Sidebar = () => {
       </div>
 
       <div className="nav-section" style={{ flex: 1, overflowY: 'auto' }}>
-        {navItems.map((item) => {
+        {navItems.filter(item => !item.roles || item.roles.includes(userRole)).map((item) => {
           const Icon = item.icon;
           return (
             <NavLink
@@ -62,36 +64,50 @@ export const Sidebar = () => {
           );
         })}
 
-        <div style={{ margin: '16px 0 8px 12px', fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 700 }}>
-          System Administration
-        </div>
+        {userRole === 'ADMIN' && (
+          <>
+            <div style={{ margin: '16px 0 8px 12px', fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 700 }}>
+              System Administration
+            </div>
 
-        <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <Settings size={18} />
-          <span>Settings</span>
-        </NavLink>
+            <NavLink to="/settings" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+              <Settings size={18} />
+              <span>Settings</span>
+            </NavLink>
+          </>
+        )}
 
-        <NavLink to="/profile" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
-          <UserIcon size={18} />
-          <span>Profile</span>
-        </NavLink>
       </div>
 
-      <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)', backgroundColor: 'rgba(0,0,0,0.2)' }}>
+      <NavLink 
+        to="/profile"
+        style={{ 
+          padding: '16px', 
+          borderTop: '1px solid var(--border-color)', 
+          backgroundColor: 'rgba(0,0,0,0.2)',
+          display: 'block',
+          textDecoration: 'none',
+          cursor: 'pointer'
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)', fontWeight: 'bold' }}>
-            {user?.name ? user.name[0] : 'A'}
+          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary-glow)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-blue)', fontWeight: 'bold', overflow: 'hidden' }}>
+            {user?.profilePhoto ? (
+              <img src={user.profilePhoto} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : (
+              user?.name ? user.name[0] : 'A'
+            )}
           </div>
           <div style={{ overflow: 'hidden' }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
               {user?.name || 'Admin'}
             </div>
-            <div style={{ fontSize: '0.7rem', color: 'var(--primary-blue)', fontWeight: 700 }}>
-              {user?.role || 'ADMIN'}
+            <div style={{ fontSize: '0.7rem', color: 'var(--primary-blue)', fontWeight: 700, textTransform: 'uppercase' }}>
+              {userRole}
             </div>
           </div>
         </div>
-      </div>
+      </NavLink>
     </aside>
   );
 };

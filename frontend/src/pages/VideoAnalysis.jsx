@@ -66,47 +66,9 @@ export const VideoAnalysis = () => {
   };
 
   const simulateDemoProcessing = () => {
-    let currentPct = 15;
-    const interval = setInterval(() => {
-      currentPct += 20;
-      setProgress(currentPct);
-      if (currentPct < 40) setProgressStep('Initializing YOLO Computer Vision detector...');
-      else if (currentPct < 75) setProgressStep('Vehicle tracking & counting line crossing...');
-      else setProgressStep('Calculating density, congestion & signal split...');
-
-      if (currentPct >= 100) {
-        clearInterval(interval);
-        setIsProcessing(false);
-        setAnalysisResult({
-          analysisId: 'VS-ANALYSIS-99',
-          videoFilename: selectedFile?.name || 'traffic_sample_stream.mp4',
-          totalVehicles: 156,
-          carCount: 92,
-          motorcycleCount: 41,
-          busCount: 8,
-          truckCount: 15,
-          bicycleCount: 0,
-          peakVehicleCount: 38,
-          averageSpeedKmh: 34.8,
-          densityLevel: 'HIGH',
-          densityScore: 78.5,
-          congestionLevel: 'HIGH',
-          congestionScore: 72.0,
-          processingDurationSec: 5.4,
-          intersectionName: 'Central Avenue Crossing',
-          cameraName: 'Central North Cam-01',
-          processedVideoUrl: '/api/analysis/VS-DEMO-001/processed-video',
-          signalRecommendation: {
-            nsScore: 82.5,
-            ewScore: 34.0,
-            nsGreenDuration: 55,
-            ewGreenDuration: 25,
-            reason: 'North-South traffic corridor volume is significantly heavier. Extending green duration phase.',
-            confidence: 0.94
-          }
-        });
-      }
-    }, 800);
+    alert('Video Analysis failed. Ensure backend and AI service are running.');
+    setIsProcessing(false);
+    setAnalysisResult(null);
   };
 
   return (
