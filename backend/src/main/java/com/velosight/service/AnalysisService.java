@@ -263,21 +263,7 @@ public class AnalysisService {
 
     private void populateFallbackResults(AnalysisSession session) {
         logger.info("Executing fallback result generation for analysis ID: {}", session.getAnalysisIdStr());
-        session.setStatus("COMPLETED");
-        session.setTotalVehicles(87);
-        session.setCarCount(54);
-        session.setMotorcycleCount(24);
-        session.setBusCount(3);
-        session.setTruckCount(6);
-        session.setBicycleCount(0);
-        session.setPeakVehicleCount(28);
-        session.setAverageSpeedKmh(38.4);
-        session.setDensityLevel("HIGH");
-        session.setDensityScore(72.5);
-        session.setCongestionLevel("MODERATE");
-        session.setCongestionScore(58.0);
-        session.setProcessingDurationSec(4.2);
-
+        session.setStatus("FAILED");
         analysisSessionRepository.save(session);
     }
 

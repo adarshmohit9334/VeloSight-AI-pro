@@ -124,128 +124,14 @@ public class DataInitializer implements CommandLineRunner {
     }
 
     private void seedAnalysisSessions() {
-        Intersection i1 = intersectionRepository.findAll().get(0);
-        Camera c1 = cameraRepository.findAll().get(0);
-
-        AnalysisSession session1 = AnalysisSession.builder()
-                .analysisIdStr("VS-DEMO-001")
-                .videoFilename("traffic_peak_hour.mp4")
-                .originalFilePath("uploads/traffic_peak_hour.mp4")
-                .processedFilePath("processed/VS-DEMO-001_processed.mp4")
-                .status("COMPLETED")
-                .totalVehicles(156)
-                .carCount(92)
-                .motorcycleCount(41)
-                .busCount(8)
-                .truckCount(15)
-                .bicycleCount(0)
-                .densityLevel("HIGH")
-                .densityScore(78.5)
-                .congestionLevel("HIGH")
-                .congestionScore(74.0)
-                .averageSpeedKmh(24.5)
-                .peakVehicleCount(42)
-                .processingDurationSec(6.8)
-                .intersection(i1)
-                .camera(c1)
-                .createdAt(LocalDateTime.now().minusHours(2))
-                .build();
-
-        AnalysisSession session2 = AnalysisSession.builder()
-                .analysisIdStr("VS-DEMO-002")
-                .videoFilename("highway_flow_morning.mp4")
-                .originalFilePath("uploads/highway_flow_morning.mp4")
-                .processedFilePath("processed/VS-DEMO-002_processed.mp4")
-                .status("COMPLETED")
-                .totalVehicles(88)
-                .carCount(60)
-                .motorcycleCount(20)
-                .busCount(3)
-                .truckCount(5)
-                .bicycleCount(0)
-                .densityLevel("MODERATE")
-                .densityScore(45.0)
-                .congestionLevel("LOW")
-                .congestionScore(28.0)
-                .averageSpeedKmh(48.2)
-                .peakVehicleCount(22)
-                .processingDurationSec(4.1)
-                .intersection(i1)
-                .camera(c1)
-                .createdAt(LocalDateTime.now().minusHours(5))
-                .build();
-
-        analysisSessionRepository.save(session1);
-        analysisSessionRepository.save(session2);
-
-        // Seed time series metrics
-        for (int h = 12; h >= 0; h--) {
-            TrafficMetric m = TrafficMetric.builder()
-                    .analysisSession(session1)
-                    .intersection(i1)
-                    .vehicleCount(80 + (h * 7) + (int)(Math.random() * 20))
-                    .densityScore(35.0 + (h * 3.5))
-                    .congestionScore(25.0 + (h * 4.0))
-                    .averageSpeedKmh(52.0 - (h * 2.1))
-                    .timestamp(LocalDateTime.now().minusHours(h))
-                    .build();
-            trafficMetricRepository.save(m);
-        }
+        // Dummy data seeding disabled
     }
 
     private void seedAlerts() {
-        Intersection i1 = intersectionRepository.findAll().get(0);
-        Camera c1 = cameraRepository.findAll().get(0);
-
-        Alert a1 = Alert.builder()
-                .type("HIGH_CONGESTION")
-                .severity("CRITICAL")
-                .message("Severe traffic queue buildup detected at Central Avenue North Approach (Score: 84%).")
-                .intersection(i1)
-                .camera(c1)
-                .status("ACTIVE")
-                .timestamp(LocalDateTime.now().minusMinutes(25))
-                .build();
-
-        Alert a2 = Alert.builder()
-                .type("POTENTIAL_INCIDENT")
-                .severity("HIGH")
-                .message("Unusual stationary vehicle cluster detected near IT Corridor Phase 1 lane 2.")
-                .intersection(i1)
-                .camera(c1)
-                .status("ACTIVE")
-                .timestamp(LocalDateTime.now().minusMinutes(45))
-                .build();
-
-        Alert a3 = Alert.builder()
-                .type("CAMERA_OFFLINE")
-                .severity("MEDIUM")
-                .message("Camera CAM-WEST-01 lost RTSP signal ping.")
-                .intersection(i1)
-                .camera(c1)
-                .status("ACKNOWLEDGED")
-                .timestamp(LocalDateTime.now().minusHours(3))
-                .build();
-
-        alertRepository.save(a1);
-        alertRepository.save(a2);
-        alertRepository.save(a3);
+        // Dummy alerts disabled
     }
 
     private void seedRecommendations() {
-        Intersection i1 = intersectionRepository.findAll().get(0);
-
-        SignalRecommendation r1 = SignalRecommendation.builder()
-                .intersection(i1)
-                .nsTrafficScore(82.5)
-                .ewTrafficScore(34.0)
-                .nsGreenDurationSec(55)
-                .ewGreenDurationSec(25)
-                .reason("North-South traffic corridor has significantly higher vehicle volume (82.5%) compared to East-West (34.0%). Extending N-S green phase duration.")
-                .confidence(0.94)
-                .createdAt(LocalDateTime.now().minusMinutes(10))
-                .build();
-
-        signalRecommendationRepository.save(r1);
+        // Dummy recommendations disabled
     }
 }

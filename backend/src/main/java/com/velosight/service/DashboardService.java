@@ -30,7 +30,7 @@ public class DashboardService {
     public DashboardSummaryDto getDashboardSummary() {
         Long totalVehiclesSum = analysisSessionRepository.getTotalVehicleCountSum();
         if (totalVehiclesSum == null) {
-            totalVehiclesSum = 1428L;
+            totalVehiclesSum = 0L;
         }
 
         Long activeAlertsCount = alertRepository.countByStatus("ACTIVE");
@@ -53,14 +53,7 @@ public class DashboardService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm");
 
         if (metrics.isEmpty()) {
-            // Populate realistic hourly baseline trend
-            for (int i = 6; i >= 0; i--) {
-                Map<String, Object> point = new HashMap<>();
-                point.put("time", String.format("%02d:00", 12 - (i * 2)));
-                point.put("vehicles", 120 + (i * 15) + (int)(Math.random() * 40));
-                point.put("density", 40 + (i * 5));
-                volumeTrends.add(point);
-            }
+            // No data
         } else {
             for (TrafficMetric m : metrics) {
                 Map<String, Object> point = new HashMap<>();
@@ -80,8 +73,8 @@ public class DashboardService {
             busSum += (s.getBusCount() != null ? s.getBusCount() : 0);
             truckSum += (s.getTruckCount() != null ? s.getTruckCount() : 0);
         }
-        if (carSum == 0) {
-            carSum = 840; bikeSum = 320; busSum = 75; truckSum = 145;
+        if (carSum == 0 && bikeSum == 0 && busSum == 0 && truckSum == 0) {
+            // Left as 0
         }
 
         distribution.put("Cars", carSum);

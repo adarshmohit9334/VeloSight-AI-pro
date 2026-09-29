@@ -25,10 +25,10 @@ public class ReportService {
         report.put("totalAnalysesRun", sessions.size());
         
         long totalVehiclesSum = sessions.stream().mapToLong(s -> s.getTotalVehicles() != null ? s.getTotalVehicles() : 0).sum();
-        report.put("totalVehiclesCounted", totalVehiclesSum > 0 ? totalVehiclesSum : 14285L);
-        report.put("averageCongestionScore", 58.4);
-        report.put("averageDensityScore", 64.2);
-        report.put("highCongestionIncidents", 12);
+        report.put("totalVehiclesCounted", totalVehiclesSum > 0 ? totalVehiclesSum : 0L);
+        report.put("averageCongestionScore", 0.0);
+        report.put("averageDensityScore", 0.0);
+        report.put("highCongestionIncidents", 0);
         report.put("status", "VALIDATED");
         return report;
     }
