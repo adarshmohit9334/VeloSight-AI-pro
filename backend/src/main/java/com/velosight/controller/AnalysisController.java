@@ -1,6 +1,7 @@
 package com.velosight.controller;
 
 import com.velosight.dto.AnalysisResultDto;
+import com.velosight.dto.AnalysisStatusResponse;
 import com.velosight.dto.AnalysisUploadResponse;
 import com.velosight.service.AnalysisService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,8 +42,8 @@ public class AnalysisController {
     }
 
     @GetMapping("/{id}/status")
-    public ResponseEntity<AnalysisResultDto> getAnalysisStatus(@PathVariable("id") String id) {
-        return ResponseEntity.ok(analysisService.getAnalysisById(id));
+    public ResponseEntity<AnalysisStatusResponse> getAnalysisStatus(@PathVariable("id") String id) {
+        return ResponseEntity.ok(analysisService.getLiveAnalysisStatus(id));
     }
 
     @GetMapping("/{id}/results")

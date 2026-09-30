@@ -59,6 +59,10 @@ public class AnalysisService {
     @Autowired
     private VehicleObservationRepository vehicleObservationRepository;
 
+    @Autowired
+    @org.springframework.context.annotation.Lazy
+    private AnalysisService self;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     public AnalysisUploadResponse uploadAndStartAnalysis(MultipartFile file, Long cameraId) throws IOException {
@@ -100,8 +104,8 @@ public class AnalysisService {
 
         analysisSessionRepository.save(session);
 
-        // Trigger async AI analysis pipeline
-        triggerAiServiceAnalysis(session, targetLocation.toString());
+        // Trigger async AI analysis pipeline via the self proxy to ensure @Async works
+        self.triggerAiServiceAnalysis(session, targetLocation.toString());
 
         return AnalysisUploadResponse.builder()
                 .analysisId(analysisId)
@@ -121,7 +125,7 @@ public class AnalysisService {
             aiRequest.put("analysisId", session.getAnalysisIdStr());
             aiRequest.put("videoPath", absoluteFilePath);
             aiRequest.put("confidenceThreshold", 0.40);
-            aiRequest.put("frameSkip", 2);
+            aiRequest.put("frameSkip", 5); // Increased frame skip to make analysis faster
 
             String url = aiServiceUrl + "/ai/analyze";
             ResponseEntity<Map> response = restTemplate.postForEntity(url, aiRequest, Map.class);
@@ -144,7 +148,7 @@ public class AnalysisService {
         int attempts = 0;
         boolean completed = false;
 
-        while (attempts < 60 && !completed) {
+        while (attempts < 600 && !completed) { // Increased timeout from 120s to 1200s (20 mins)
             try {
                 Thread.sleep(2000);
                 attempts++;
@@ -298,6 +302,41 @@ public class AnalysisService {
         AnalysisSession session = analysisSessionRepository.findByAnalysisIdStr(analysisIdStr)
                 .orElseThrow(() -> new RuntimeException("Analysis not found: " + analysisIdStr));
         return convertToDto(session);
+    }
+
+    public AnalysisStatusResponse getLiveAnalysisStatus(String analysisIdStr) {
+        AnalysisSession session = analysisSessionRepository.findByAnalysisIdStr(analysisIdStr)
+                .orElseThrow(() -> new RuntimeException("Analysis not found: " + analysisIdStr));
+        
+        AnalysisStatusResponse response = new AnalysisStatusResponse();
+        response.setAnalysisId(session.getAnalysisIdStr());
+        response.setStatus(session.getStatus());
+        
+        if ("PROCESSING".equals(session.getStatus()) || "QUEUED".equals(session.getStatus())) {
+            try {
+                String statusUrl = aiServiceUrl + "/ai/status/" + session.getAnalysisIdStr();
+                Map statusResp = restTemplate.getForObject(statusUrl, Map.class);
+                if (statusResp != null) {
+                    Object progressObj = statusResp.get("progress");
+                    if (progressObj instanceof Number) {
+                        response.setProgress(((Number) progressObj).doubleValue());
+                    }
+                    response.setStep((String) statusResp.get("step"));
+                }
+            } catch (Exception e) {
+                logger.warn("Could not fetch live status from AI service for {}: {}", session.getAnalysisIdStr(), e.getMessage());
+            }
+        } else if ("COMPLETED".equals(session.getStatus())) {
+            response.setProgress(100.0);
+            response.setStep("Analysis Completed");
+            response.setResult(convertToDto(session));
+        } else if ("FAILED".equals(session.getStatus())) {
+            response.setProgress(0.0);
+            response.setStep("Analysis Failed");
+            response.setError("Failed during processing");
+        }
+        
+        return response;
     }
 
     @org.springframework.transaction.annotation.Transactional
