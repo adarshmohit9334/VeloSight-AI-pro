@@ -10,6 +10,7 @@ from app.tracker import CentroidTracker
 from app.density import DensityEngine
 from app.congestion import CongestionEngine
 from app.signal_recommendation import SignalRecommendationEngine
+from app.anpr import ANPREngine
 
 logger = logging.getLogger("velosight.analyzer")
 
@@ -20,7 +21,12 @@ class VideoAnalyzer:
         self.density_engine = DensityEngine()
         self.congestion_engine = CongestionEngine()
         self.signal_engine = SignalRecommendationEngine()
+        self.anpr_engine = ANPREngine(
+            model_path=os.environ.get("ANPR_MODEL_PATH", ""),
+            enabled=os.environ.get("ANPR_ENABLED", "true").lower() == "true"
+        )
         self.frame_skip = max(1, frame_skip)
+        self.anpr_frame_interval = int(os.environ.get("ANPR_FRAME_INTERVAL", "5"))
 
     def process_video(
         self,
@@ -62,6 +68,9 @@ class VideoAnalyzer:
             "truck": 0,
             "bicycle": 0
         }
+
+        # ANPR tracking: track_id -> { "v_class": str, "plate_number": str, "plate_status": str, "det_conf": float, "ocr_conf": float, "first_seen": float, "last_seen": float }
+        plate_observations = {}
 
         crossed_ids = set()
         previous_positions: Dict[int, list] = {}
@@ -107,6 +116,22 @@ class VideoAnalyzer:
                 box = obj.get('box', [0, 0, 0, 0])
                 cx, cy = obj['centroid']
 
+                # Initialize observation if needed
+                current_time_sec = frame_idx / float(fps)
+                if track_id not in plate_observations:
+                    plate_observations[track_id] = {
+                        "trackId": track_id,
+                        "vehicleType": v_class,
+                        "plateNumber": "",
+                        "plateStatus": "UNKNOWN",
+                        "detectionConfidence": 0.0,
+                        "ocrConfidence": 0.0,
+                        "firstSeen": current_time_sec,
+                        "lastSeen": current_time_sec
+                    }
+                else:
+                    plate_observations[track_id]["lastSeen"] = current_time_sec
+
                 # Speed estimation based on displacement per frame
                 if track_id in previous_positions:
                     prev_cx, prev_cy = previous_positions[track_id]
@@ -124,11 +149,41 @@ class VideoAnalyzer:
                         crossed_ids.add(track_id)
                         vehicle_counts[v_class] = vehicle_counts.get(v_class, 0) + 1
 
+                # ANPR processing
+                obs = plate_observations[track_id]
+                # Only process every N frames and if plate is not already confidently read
+                anpr_debug = os.environ.get("ANPR_DEBUG", "false").lower() == "true"
+                
+                if self.anpr_engine.enabled and frame_idx % self.anpr_frame_interval == 0 and obs["ocrConfidence"] < 0.85:
+                    anpr_res = self.anpr_engine.process_vehicle(frame, box)
+                    
+                    if anpr_debug and (anpr_res["plate_status"] != "UNKNOWN"):
+                        logger.info(f"DEBUG ANPR Track {track_id}: Plate: '{anpr_res['plate_number']}' Status: {anpr_res['plate_status']} (Det: {anpr_res['detection_confidence']}, OCR: {anpr_res['ocr_confidence']})")
+                        
+                    if anpr_res["plate_number"] and anpr_res["ocr_confidence"] > obs["ocrConfidence"]:
+                        obs["plateNumber"] = anpr_res["plate_number"]
+                        obs["plateStatus"] = anpr_res["plate_status"]
+                        obs["detectionConfidence"] = anpr_res["detection_confidence"]
+                        obs["ocrConfidence"] = anpr_res["ocr_confidence"]
+                    elif not obs["plateNumber"] and anpr_res["plate_status"] == "NOT_READABLE":
+                        obs["plateStatus"] = "NOT_READABLE"
+                    elif anpr_debug and not obs["plateNumber"] and anpr_res["plate_number"]:
+                        # Capture even low confidence reads for debug if we don't have anything yet
+                        obs["plateNumber"] = anpr_res["plate_number"]
+                        obs["plateStatus"] = anpr_res["plate_status"]
+                        obs["detectionConfidence"] = anpr_res["detection_confidence"]
+                        obs["ocrConfidence"] = anpr_res["ocr_confidence"]
+
                 # Draw bounding box & track ID overlay on output frame
                 x1, y1, x2, y2 = box
                 color = (0, 255, 120) if v_class == 'car' else (255, 165, 0) if v_class in ['bus', 'truck'] else (255, 200, 0)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                cv2.putText(frame, f"ID:{track_id} {v_class}", (x1, max(y1 - 6, 15)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+                
+                label = f"ID:{track_id} {v_class}"
+                if obs["plateNumber"] and (os.environ.get("ANPR_OVERLAY_ENABLED", "true").lower() == "true" or anpr_debug):
+                    label += f" [{obs['plateNumber']} {int(obs['ocrConfidence']*100)}%]"
+                
+                cv2.putText(frame, label, (x1, max(y1 - 6, 15)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
             # Draw virtual counting line
             cv2.line(frame, (0, line_y), (width, line_y), (0, 0, 255), 2)
@@ -188,5 +243,6 @@ class VideoAnalyzer:
             "signalRecommendation": signal_rec,
             "potentialIncident": potential_incident,
             "incidentDescription": incident_description,
-            "processingDurationSec": processing_duration
+            "processingDurationSec": processing_duration,
+            "vehicleObservations": list(plate_observations.values())
         }
