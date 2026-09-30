@@ -121,6 +121,49 @@ export const History = () => {
               <div><strong>File:</strong> {selectedSession.videoFilename}</div>
               <div><strong>Date:</strong> {selectedSession.createdAt ? new Date(selectedSession.createdAt).toLocaleString() : 'N/A'}</div>
             </div>
+
+            {selectedSession.vehicleObservations && selectedSession.vehicleObservations.length > 0 && (
+              <div style={{ marginTop: '10px' }}>
+                <h3 style={{ fontSize: '1rem', color: '#fff', marginBottom: '10px' }}>Detected Number Plates (ANPR)</h3>
+                <div className="table-responsive" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                  <table className="custom-table" style={{ fontSize: '0.85rem' }}>
+                    <thead>
+                      <tr>
+                        <th>Track ID</th>
+                        <th>Class</th>
+                        <th>Plate Number</th>
+                        <th>Status</th>
+                        <th>Confidence</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedSession.vehicleObservations
+                        .filter(obs => obs.plateNumber && obs.plateNumber.trim() !== '')
+                        .map((obs, idx) => (
+                        <tr key={idx}>
+                          <td style={{ color: '#38bdf8' }}>#{obs.trackId}</td>
+                          <td>{obs.vehicleType}</td>
+                          <td style={{ fontWeight: 'bold', color: '#10b981' }}>{obs.plateNumber}</td>
+                          <td>
+                            <span className={`badge ${obs.plateStatus === 'READ' ? 'badge-low' : 'badge-moderate'}`}>
+                              {obs.plateStatus}
+                            </span>
+                          </td>
+                          <td>{obs.ocrConfidence ? (obs.ocrConfidence * 100).toFixed(1) + '%' : '-'}</td>
+                        </tr>
+                      ))}
+                      {selectedSession.vehicleObservations.filter(obs => obs.plateNumber && obs.plateNumber.trim() !== '').length === 0 && (
+                        <tr>
+                          <td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                            No plates detected with sufficient confidence.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>
