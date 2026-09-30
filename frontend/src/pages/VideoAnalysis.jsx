@@ -46,11 +46,19 @@ export const VideoAnalysis = () => {
             clearInterval(pollInterval);
             setProgress(100);
             setProgressStep('Analysis Completed');
-            setAnalysisResult(session);
+            setAnalysisResult(session.result || session);
             setIsProcessing(false);
-          } else if (session.status === 'PROCESSING') {
-            setProgress((prev) => Math.min(prev + 15, 90));
-            setProgressStep('YOLO & Centroid Tracking frames...');
+          } else if (session.status === 'PROCESSING' || session.status === 'QUEUED') {
+            if (session.progress) {
+              setProgress(session.progress);
+            } else {
+              setProgress((prev) => Math.min(prev + 5, 90));
+            }
+            if (session.step) {
+              setProgressStep(session.step);
+            } else {
+              setProgressStep('Processing video...');
+            }
           }
         } catch (e) {
           clearInterval(pollInterval);
