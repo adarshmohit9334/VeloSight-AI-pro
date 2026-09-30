@@ -62,6 +62,13 @@ class ANPREngine:
             return text
         return ""
 
+    def validate_indian_plate(self, text: str) -> bool:
+        """
+        Checks if the text looks strongly like an Indian license plate
+        """
+        pattern = r'^[A-Z]{2}[0-9]{1,2}[A-Z]{0,3}[0-9]{1,4}$'
+        return bool(re.match(pattern, text))
+
     def extract_plate(self, frame: np.ndarray, vehicle_box: list) -> Tuple[Optional[np.ndarray], float]:
         """
         Attempts to crop the license plate from a vehicle bounding box.
@@ -114,43 +121,59 @@ class ANPREngine:
         
         return plate_crop, det_conf
 
+    def _run_ocr_on_variant(self, img: np.ndarray) -> Tuple[str, float]:
+        try:
+            result = self.reader.readtext(img)
+            if result:
+                full_text = "".join([res[1] for res in result])
+                conf = max([res[2] for res in result])
+                norm = self._normalize_indian_plate(full_text)
+                if norm:
+                    return norm, float(conf)
+        except Exception:
+            pass
+        return "", 0.0
+
     def recognize_plate(self, plate_crop: np.ndarray) -> Tuple[str, float]:
         """
-        Runs OCR on the cropped plate image.
+        Runs OCR on the cropped plate image using multiple preprocessing pipelines.
         Returns (normalized_plate_text, ocr_confidence)
         """
         if not self.enabled or self.reader is None or plate_crop is None or plate_crop.size == 0:
             return "", 0.0
 
-        # Preprocessing to improve OCR
         gray = cv2.cvtColor(plate_crop, cv2.COLOR_BGR2GRAY)
-        gray = cv2.resize(gray, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+        gray = cv2.resize(gray, None, fx=2.5, fy=2.5, interpolation=cv2.INTER_CUBIC)
         
-        # Apply bilateral filter to reduce noise while keeping edges sharp
+        # Pipeline 1: Bilateral Filter (reduces noise, keeps edges)
         blur = cv2.bilateralFilter(gray, 11, 17, 17)
         
-        # Run OCR
-        try:
-            result = self.reader.readtext(blur)
-            if not result:
-                # Try with inverted colors
-                inverted = cv2.bitwise_not(blur)
-                result = self.reader.readtext(inverted)
+        # Pipeline 2: CLAHE (Contrast Limited Adaptive Histogram Equalization)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+        cl_img = clahe.apply(gray)
+        
+        # Pipeline 3: Inverted
+        inverted = cv2.bitwise_not(blur)
+        
+        # Pipeline 4: Adaptive Threshold
+        thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2)
+        
+        variants = [blur, cl_img, inverted, thresh]
+        best_text = ""
+        best_conf = 0.0
+        
+        for variant in variants:
+            text, conf = self._run_ocr_on_variant(variant)
+            if text:
+                is_valid = self.validate_indian_plate(text)
+                # Boost confidence if it perfectly matches Indian plate format
+                effective_conf = conf + 0.2 if is_valid else conf
                 
-            if result:
-                # Combine all detected text (in case it's read as multiple chunks)
-                full_text = "".join([res[1] for res in result])
-                
-                # Confidence is weighted average or max
-                conf = max([res[2] for res in result]) if result else 0.0
-                
-                normalized = self._normalize_indian_plate(full_text)
-                if normalized:
-                    return normalized, float(conf)
-        except Exception as e:
-            logger.debug(f"OCR Exception: {e}")
-            
-        return "", 0.0
+                if effective_conf > best_conf:
+                    best_conf = conf # store actual conf
+                    best_text = text
+                    
+        return best_text, best_conf
 
     def process_vehicle(self, frame: np.ndarray, vehicle_box: list) -> Dict:
         """

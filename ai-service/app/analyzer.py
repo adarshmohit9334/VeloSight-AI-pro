@@ -151,28 +151,33 @@ class VideoAnalyzer:
 
                 # ANPR processing
                 obs = plate_observations[track_id]
-                # Only process every N frames and if plate is not already confidently read
                 anpr_debug = os.environ.get("ANPR_DEBUG", "false").lower() == "true"
                 
-                if self.anpr_engine.enabled and frame_idx % self.anpr_frame_interval == 0 and obs["ocrConfidence"] < 0.85:
-                    anpr_res = self.anpr_engine.process_vehicle(frame, box)
+                # We will process OCR multiple times and store all reads in a temporary list for consensus
+                if "reads" not in obs:
+                    obs["reads"] = []
                     
-                    if anpr_debug and (anpr_res["plate_status"] != "UNKNOWN"):
-                        logger.info(f"DEBUG ANPR Track {track_id}: Plate: '{anpr_res['plate_number']}' Status: {anpr_res['plate_status']} (Det: {anpr_res['detection_confidence']}, OCR: {anpr_res['ocr_confidence']})")
+                if self.anpr_engine.enabled and frame_idx % self.anpr_frame_interval == 0:
+                    # Stop processing if we already have a very high confidence read (e.g. > 90%)
+                    best_conf_so_far = max([r["conf"] for r in obs["reads"]]) if obs["reads"] else 0.0
+                    if best_conf_so_far < 0.90:
+                        anpr_res = self.anpr_engine.process_vehicle(frame, box)
                         
-                    if anpr_res["plate_number"] and anpr_res["ocr_confidence"] > obs["ocrConfidence"]:
-                        obs["plateNumber"] = anpr_res["plate_number"]
-                        obs["plateStatus"] = anpr_res["plate_status"]
-                        obs["detectionConfidence"] = anpr_res["detection_confidence"]
-                        obs["ocrConfidence"] = anpr_res["ocr_confidence"]
-                    elif not obs["plateNumber"] and anpr_res["plate_status"] == "NOT_READABLE":
-                        obs["plateStatus"] = "NOT_READABLE"
-                    elif anpr_debug and not obs["plateNumber"] and anpr_res["plate_number"]:
-                        # Capture even low confidence reads for debug if we don't have anything yet
-                        obs["plateNumber"] = anpr_res["plate_number"]
-                        obs["plateStatus"] = anpr_res["plate_status"]
-                        obs["detectionConfidence"] = anpr_res["detection_confidence"]
-                        obs["ocrConfidence"] = anpr_res["ocr_confidence"]
+                        if anpr_debug and (anpr_res["plate_status"] != "UNKNOWN"):
+                            logger.info(f"DEBUG ANPR Track {track_id}: Plate: '{anpr_res['plate_number']}' Status: {anpr_res['plate_status']} (Det: {anpr_res['detection_confidence']}, OCR: {anpr_res['ocr_confidence']})")
+                            
+                        if anpr_res["plate_number"]:
+                            obs["reads"].append({
+                                "text": anpr_res["plate_number"],
+                                "conf": anpr_res["ocr_confidence"],
+                                "det_conf": anpr_res["detection_confidence"]
+                            })
+                            # Keep the highest confidence one tentatively active for HUD overlay
+                            if anpr_res["ocr_confidence"] > obs.get("ocrConfidence", 0):
+                                obs["plateNumber"] = anpr_res["plate_number"]
+                                obs["plateStatus"] = anpr_res["plate_status"]
+                                obs["detectionConfidence"] = anpr_res["detection_confidence"]
+                                obs["ocrConfidence"] = anpr_res["ocr_confidence"]
 
                 # Draw bounding box & track ID overlay on output frame
                 x1, y1, x2, y2 = box
@@ -222,6 +227,43 @@ class VideoAnalyzer:
             potential_incident = True
             incident_description = "Unusual traffic slowdown detected. High vehicle clustering with low movement."
 
+        # Compute consensus for ANPR observations
+        final_observations = []
+        for track_id, obs in plate_observations.items():
+            reads = obs.get("reads", [])
+            # Only include if we actually saw the vehicle enough or got reads
+            if len(reads) > 0:
+                # frequency map
+                freq = {}
+                for r in reads:
+                    t = r["text"]
+                    if t not in freq:
+                        freq[t] = {"count": 0, "max_conf": 0.0, "max_det": 0.0}
+                    freq[t]["count"] += 1
+                    freq[t]["max_conf"] = max(freq[t]["max_conf"], r["conf"])
+                    freq[t]["max_det"] = max(freq[t]["max_det"], r["det_conf"])
+                
+                # Pick the most frequent text, break ties with highest max_conf
+                best_text = max(freq.keys(), key=lambda k: (freq[k]["count"], freq[k]["max_conf"]))
+                obs["plateNumber"] = best_text
+                obs["ocrConfidence"] = freq[best_text]["max_conf"]
+                obs["detectionConfidence"] = freq[best_text]["max_det"]
+                obs["plateStatus"] = "READ" if obs["ocrConfidence"] >= 0.50 else "LOW_CONFIDENCE"
+            else:
+                if obs["plateStatus"] != "UNKNOWN" and obs["plateStatus"] != "NOT_READABLE":
+                    obs["plateStatus"] = "NOT_READABLE"
+            
+            # Clean up temporary field
+            if "reads" in obs:
+                del obs["reads"]
+            
+            # Filter out vehicles where we never even tried to read a plate, or if the user wants them all, we can include them
+            # For now, include all tracked vehicles, but mark those with no plates clearly.
+            if obs["plateStatus"] == "UNKNOWN":
+                obs["plateStatus"] = "NO_PLATE_DETECTED"
+
+            final_observations.append(obs)
+
         return {
             "analysisId": analysis_id,
             "status": "COMPLETED",
@@ -244,5 +286,5 @@ class VideoAnalyzer:
             "potentialIncident": potential_incident,
             "incidentDescription": incident_description,
             "processingDurationSec": processing_duration,
-            "vehicleObservations": list(plate_observations.values())
+            "vehicleObservations": final_observations
         }
