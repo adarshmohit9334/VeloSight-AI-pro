@@ -14,6 +14,8 @@ export const VideoAnalysis = () => {
   const [progressStep, setProgressStep] = useState('');
   const [analysisResult, setAnalysisResult] = useState(null);
   const [cameraId, setCameraId] = useState('1');
+  const [processingMode, setProcessingMode] = useState('FAST');
+  const [generateVideo, setGenerateVideo] = useState(false);
 
   const handleStartAnalysis = async () => {
     if (!selectedFile && !demoMode) return;
@@ -31,6 +33,8 @@ export const VideoAnalysis = () => {
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('cameraId', cameraId);
+      formData.append('processingMode', processingMode);
+      formData.append('generateVideo', generateVideo.toString());
 
       const uploadRes = await API.post('/analysis/upload', formData);
 
@@ -109,6 +113,26 @@ export const VideoAnalysis = () => {
                 <option value="yolo">YOLOv8 + Centroid Tracking Engine (Default)</option>
                 <option value="opencv">OpenCV Background Subtraction (Fallback Mode)</option>
               </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Processing Mode</label>
+              <select className="form-control" value={processingMode} onChange={(e) => setProcessingMode(e.target.value)}>
+                <option value="FAST">FAST (5 FPS, Optimal ANPR) - Default</option>
+                <option value="BALANCED">BALANCED (8 FPS)</option>
+                <option value="ACCURATE">ACCURATE (12 FPS, High Precision)</option>
+              </select>
+            </div>
+
+            <div className="form-group" style={{ display: 'flex', alignItems: 'center', marginTop: '24px', gap: '10px' }}>
+              <input 
+                type="checkbox" 
+                id="genVideo" 
+                checked={generateVideo} 
+                onChange={(e) => setGenerateVideo(e.target.checked)} 
+                style={{ width: '18px', height: '18px' }}
+              />
+              <label htmlFor="genVideo" className="form-label" style={{ marginBottom: 0 }}>Generate Annotated Video (Slower)</label>
             </div>
           </div>
 
