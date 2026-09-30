@@ -56,6 +56,9 @@ public class AnalysisService {
     @Autowired
     private SignalRecommendationRepository signalRecommendationRepository;
 
+    @Autowired
+    private VehicleObservationRepository vehicleObservationRepository;
+
     private final RestTemplate restTemplate = new RestTemplate();
 
     public AnalysisUploadResponse uploadAndStartAnalysis(MultipartFile file, Long cameraId) throws IOException {
@@ -256,6 +259,25 @@ public class AnalysisService {
                 signalRecommendationRepository.save(rec);
             }
 
+            // Save Vehicle Observations
+            List<Map<String, Object>> observations = (List<Map<String, Object>>) results.get("vehicleObservations");
+            if (observations != null) {
+                for (Map<String, Object> obsMap : observations) {
+                    VehicleObservation vo = VehicleObservation.builder()
+                            .analysisSession(session)
+                            .trackId(obsMap.containsKey("trackId") ? ((Number) obsMap.get("trackId")).intValue() : 0)
+                            .vehicleType((String) obsMap.get("vehicleType"))
+                            .plateNumber((String) obsMap.get("plateNumber"))
+                            .plateStatus((String) obsMap.get("plateStatus"))
+                            .detectionConfidence(obsMap.containsKey("detectionConfidence") ? ((Number) obsMap.get("detectionConfidence")).doubleValue() : 0.0)
+                            .ocrConfidence(obsMap.containsKey("ocrConfidence") ? ((Number) obsMap.get("ocrConfidence")).doubleValue() : 0.0)
+                            .firstSeen(obsMap.containsKey("firstSeen") ? ((Number) obsMap.get("firstSeen")).doubleValue() : 0.0)
+                            .lastSeen(obsMap.containsKey("lastSeen") ? ((Number) obsMap.get("lastSeen")).doubleValue() : 0.0)
+                            .build();
+                    vehicleObservationRepository.save(vo);
+                }
+            }
+
         } catch (Exception e) {
             logger.error("Error saving AI results: {}", e.getMessage(), e);
         }
@@ -283,6 +305,7 @@ public class AnalysisService {
         AnalysisSession session = analysisSessionRepository.findByAnalysisIdStr(analysisIdStr)
                 .orElseThrow(() -> new RuntimeException("Analysis not found: " + analysisIdStr));
         trafficMetricRepository.deleteByAnalysisSession(session);
+        vehicleObservationRepository.deleteByAnalysisSession(session);
         analysisSessionRepository.delete(session);
     }
 
@@ -293,6 +316,19 @@ public class AnalysisService {
         counts.put("bus", session.getBusCount() != null ? session.getBusCount() : 0);
         counts.put("truck", session.getTruckCount() != null ? session.getTruckCount() : 0);
         counts.put("bicycle", session.getBicycleCount() != null ? session.getBicycleCount() : 0);
+
+        List<VehicleObservation> observations = vehicleObservationRepository.findByAnalysisSession(session);
+        List<VehicleObservationDto> obsDtos = observations.stream().map(obs -> VehicleObservationDto.builder()
+                .id(obs.getId())
+                .trackId(obs.getTrackId())
+                .vehicleType(obs.getVehicleType())
+                .plateNumber(obs.getPlateNumber())
+                .plateStatus(obs.getPlateStatus())
+                .detectionConfidence(obs.getDetectionConfidence())
+                .ocrConfidence(obs.getOcrConfidence())
+                .firstSeen(obs.getFirstSeen())
+                .lastSeen(obs.getLastSeen())
+                .build()).toList();
 
         return AnalysisResultDto.builder()
                 .id(session.getId())
@@ -317,6 +353,7 @@ public class AnalysisService {
                 .intersectionName(session.getIntersection() != null ? session.getIntersection().getName() : "Central Avenue Junction")
                 .processedVideoUrl("/api/analysis/" + session.getAnalysisIdStr() + "/processed-video")
                 .createdAt(session.getCreatedAt())
+                .vehicleObservations(obsDtos)
                 .build();
     }
 }

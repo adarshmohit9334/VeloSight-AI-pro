@@ -80,6 +80,41 @@ public class AnalysisController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/{id}/vehicles")
+    public ResponseEntity<List<com.velosight.dto.VehicleObservationDto>> getVehiclesForAnalysis(@PathVariable("id") String id) {
+        AnalysisResultDto dto = analysisService.getAnalysisById(id);
+        if (dto.getVehicleObservations() == null) {
+            return ResponseEntity.ok(java.util.Collections.emptyList());
+        }
+        return ResponseEntity.ok(dto.getVehicleObservations());
+    }
+
+    @GetMapping("/{id}/plates")
+    public ResponseEntity<List<com.velosight.dto.VehicleObservationDto>> getPlatesForAnalysis(@PathVariable("id") String id) {
+        AnalysisResultDto dto = analysisService.getAnalysisById(id);
+        if (dto.getVehicleObservations() == null) {
+            return ResponseEntity.ok(java.util.Collections.emptyList());
+        }
+        List<com.velosight.dto.VehicleObservationDto> platesOnly = dto.getVehicleObservations().stream()
+                .filter(obs -> "READ".equals(obs.getPlateStatus()) || "LOW_CONFIDENCE".equals(obs.getPlateStatus()))
+                .filter(obs -> obs.getPlateNumber() != null && !obs.getPlateNumber().isEmpty())
+                .toList();
+        return ResponseEntity.ok(platesOnly);
+    }
+
+    @GetMapping("/{id}/vehicles/{trackId}")
+    public ResponseEntity<com.velosight.dto.VehicleObservationDto> getVehicleByTrackId(@PathVariable("id") String id, @PathVariable("trackId") Integer trackId) {
+        AnalysisResultDto dto = analysisService.getAnalysisById(id);
+        if (dto.getVehicleObservations() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return dto.getVehicleObservations().stream()
+                .filter(obs -> trackId.equals(obs.getTrackId()))
+                .findFirst()
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception e) {
         return ResponseEntity.badRequest().body("Error: " + e.getMessage());

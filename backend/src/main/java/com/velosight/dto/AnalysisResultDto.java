@@ -33,10 +33,12 @@ public class AnalysisResultDto {
 
     private SignalRecommendationDto signalRecommendation;
     private LocalDateTime createdAt;
+    
+    private java.util.List<VehicleObservationDto> vehicleObservations;
 
     public AnalysisResultDto() {}
 
-    public AnalysisResultDto(Long id, String analysisId, String videoFilename, String status, Integer totalVehicles, Map<String, Integer> vehicleCounts, Integer carCount, Integer motorcycleCount, Integer busCount, Integer truckCount, Integer bicycleCount, String densityLevel, Double densityScore, String congestionLevel, Double congestionScore, Double averageSpeedKmh, Integer peakVehicleCount, Double processingDurationSec, String cameraName, String intersectionName, String processedVideoUrl, SignalRecommendationDto signalRecommendation, LocalDateTime createdAt) {
+    public AnalysisResultDto(Long id, String analysisId, String videoFilename, String status, Integer totalVehicles, Map<String, Integer> vehicleCounts, Integer carCount, Integer motorcycleCount, Integer busCount, Integer truckCount, Integer bicycleCount, String densityLevel, Double densityScore, String congestionLevel, Double congestionScore, Double averageSpeedKmh, Integer peakVehicleCount, Double processingDurationSec, String cameraName, String intersectionName, String processedVideoUrl, SignalRecommendationDto signalRecommendation, LocalDateTime createdAt, java.util.List<VehicleObservationDto> vehicleObservations) {
         this.id = id;
         this.analysisId = analysisId;
         this.videoFilename = videoFilename;
@@ -60,6 +62,7 @@ public class AnalysisResultDto {
         this.processedVideoUrl = processedVideoUrl;
         this.signalRecommendation = signalRecommendation;
         this.createdAt = createdAt;
+        this.vehicleObservations = vehicleObservations;
     }
 
     public Long getId() { return id; }
@@ -131,6 +134,9 @@ public class AnalysisResultDto {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    public java.util.List<VehicleObservationDto> getVehicleObservations() { return vehicleObservations; }
+    public void setVehicleObservations(java.util.List<VehicleObservationDto> vehicleObservations) { this.vehicleObservations = vehicleObservations; }
+
     public static AnalysisResultDtoBuilder builder() {
         return new AnalysisResultDtoBuilder();
     }
@@ -159,6 +165,7 @@ public class AnalysisResultDto {
         private String processedVideoUrl;
         private SignalRecommendationDto signalRecommendation;
         private LocalDateTime createdAt;
+        private java.util.List<VehicleObservationDto> vehicleObservations;
 
         public AnalysisResultDtoBuilder id(Long id) { this.id = id; return this; }
         public AnalysisResultDtoBuilder analysisId(String analysisId) { this.analysisId = analysisId; return this; }
@@ -183,9 +190,10 @@ public class AnalysisResultDto {
         public AnalysisResultDtoBuilder processedVideoUrl(String processedVideoUrl) { this.processedVideoUrl = processedVideoUrl; return this; }
         public AnalysisResultDtoBuilder signalRecommendation(SignalRecommendationDto signalRecommendation) { this.signalRecommendation = signalRecommendation; return this; }
         public AnalysisResultDtoBuilder createdAt(LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
+        public AnalysisResultDtoBuilder vehicleObservations(java.util.List<VehicleObservationDto> vehicleObservations) { this.vehicleObservations = vehicleObservations; return this; }
 
         public AnalysisResultDto build() {
-            return new AnalysisResultDto(id, analysisId, videoFilename, status, totalVehicles, vehicleCounts, carCount, motorcycleCount, busCount, truckCount, bicycleCount, densityLevel, densityScore, congestionLevel, congestionScore, averageSpeedKmh, peakVehicleCount, processingDurationSec, cameraName, intersectionName, processedVideoUrl, signalRecommendation, createdAt);
+            return new AnalysisResultDto(id, analysisId, videoFilename, status, totalVehicles, vehicleCounts, carCount, motorcycleCount, busCount, truckCount, bicycleCount, densityLevel, densityScore, congestionLevel, congestionScore, averageSpeedKmh, peakVehicleCount, processingDurationSec, cameraName, intersectionName, processedVideoUrl, signalRecommendation, createdAt, vehicleObservations);
         }
     }
 }
