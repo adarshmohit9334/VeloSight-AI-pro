@@ -27,8 +27,10 @@ public class AnalysisController {
     @PostMapping("/upload")
     public ResponseEntity<AnalysisUploadResponse> uploadVideo(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "cameraId", required = false) Long cameraId) throws IOException {
-        return ResponseEntity.ok(analysisService.uploadAndStartAnalysis(file, cameraId));
+            @RequestParam(value = "cameraId", required = false) Long cameraId,
+            @RequestParam(value = "processingMode", defaultValue = "FAST") String processingMode,
+            @RequestParam(value = "generateVideo", defaultValue = "false") boolean generateVideo) throws IOException {
+        return ResponseEntity.ok(analysisService.uploadAndStartAnalysis(file, cameraId, processingMode, generateVideo));
     }
 
     @GetMapping

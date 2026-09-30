@@ -65,7 +65,7 @@ public class AnalysisService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public AnalysisUploadResponse uploadAndStartAnalysis(MultipartFile file, Long cameraId) throws IOException {
+    public AnalysisUploadResponse uploadAndStartAnalysis(MultipartFile file, Long cameraId, String processingMode, boolean generateVideo) throws IOException {
         String originalFilename = file.getOriginalFilename();
         String extension = "";
         if (originalFilename != null && originalFilename.contains(".")) {
@@ -105,7 +105,7 @@ public class AnalysisService {
         analysisSessionRepository.save(session);
 
         // Trigger async AI analysis pipeline via the self proxy to ensure @Async works
-        self.triggerAiServiceAnalysis(session, targetLocation.toString());
+        self.triggerAiServiceAnalysis(session, targetLocation.toString(), processingMode, generateVideo);
 
         return AnalysisUploadResponse.builder()
                 .analysisId(analysisId)
@@ -116,16 +116,22 @@ public class AnalysisService {
     }
 
     @Async
-    public void triggerAiServiceAnalysis(AnalysisSession session, String absoluteFilePath) {
+    public void triggerAiServiceAnalysis(AnalysisSession session, String absoluteFilePath, String processingMode, boolean generateVideo) {
         try {
             session.setStatus("PROCESSING");
             analysisSessionRepository.save(session);
+
+            int frameSkip = 6; // FAST (~5 fps)
+            if ("BALANCED".equalsIgnoreCase(processingMode)) frameSkip = 4; // ~8 fps
+            else if ("ACCURATE".equalsIgnoreCase(processingMode)) frameSkip = 3; // ~10-12 fps
 
             Map<String, Object> aiRequest = new HashMap<>();
             aiRequest.put("analysisId", session.getAnalysisIdStr());
             aiRequest.put("videoPath", absoluteFilePath);
             aiRequest.put("confidenceThreshold", 0.40);
-            aiRequest.put("frameSkip", 5); // Increased frame skip to make analysis faster
+            aiRequest.put("frameSkip", frameSkip);
+            aiRequest.put("generateVideo", generateVideo);
+            aiRequest.put("processingMode", processingMode);
 
             String url = aiServiceUrl + "/ai/analyze";
             ResponseEntity<Map> response = restTemplate.postForEntity(url, aiRequest, Map.class);
