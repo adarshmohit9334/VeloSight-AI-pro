@@ -33,6 +33,8 @@ class AnalysisRequest(BaseModel):
     videoPath: str
     confidenceThreshold: float = Field(default=0.40, ge=0.1, le=0.9)
     frameSkip: int = Field(default=2, ge=1, le=10)
+    processingMode: str = "FAST"
+    generateVideo: bool = False
 
 def run_analysis_task(request: AnalysisRequest):
     analysis_id = request.analysisId
@@ -61,7 +63,8 @@ def run_analysis_task(request: AnalysisRequest):
             analysis_id=analysis_id,
             input_video_path=request.videoPath,
             output_video_dir=output_dir,
-            progress_callback=update_progress
+            progress_callback=update_progress,
+            generate_video=request.generateVideo
         )
 
         analysis_jobs[analysis_id]["status"] = "COMPLETED"

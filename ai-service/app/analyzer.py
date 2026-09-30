@@ -33,7 +33,8 @@ class VideoAnalyzer:
         analysis_id: str,
         input_video_path: str,
         output_video_dir: str,
-        progress_callback: Callable[[float, str], None] = None
+        progress_callback: Callable[[float, str], None] = None,
+        generate_video: bool = False
     ) -> Dict[str, Any]:
         """
         Processes a video file and generates full traffic metrics & annotated output video.
@@ -57,9 +58,11 @@ class VideoAnalyzer:
         # Counting Line setup (Horizontal line at 60% of frame height)
         line_y = int(height * 0.60)
 
-        # Setup VideoWriter
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+        # Setup VideoWriter if rendering is enabled
+        out = None
+        if generate_video:
+            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
 
         vehicle_counts = {
             "car": 0,
@@ -80,6 +83,14 @@ class VideoAnalyzer:
 
         start_time = time.time()
         frame_idx = 0
+        tracked_objects = []
+
+        # Profiling
+        yolo_time = 0.0
+        anpr_time = 0.0
+        render_time = 0.0
+        yolo_calls = 0
+        anpr_calls = 0
 
         while cap.isOpened():
             ret, frame = cap.read()
@@ -95,10 +106,15 @@ class VideoAnalyzer:
 
             # Run detection & tracking (skip frames for speed if configured)
             if frame_idx % self.frame_skip == 0:
+                t0 = time.time()
                 raw_detections = self.detector.detect(frame)
                 tracked_objects = self.tracker.update(raw_detections)
+                yolo_time += (time.time() - t0)
+                yolo_calls += 1
             else:
-                tracked_objects = self.tracker.update([])
+                if not generate_video:
+                    continue
+                # If generating video, keep the same tracked_objects and just don't update tracker
 
             vehicles_in_frame = len(tracked_objects)
             max_vehicles_in_frame = max(max_vehicles_in_frame, vehicles_in_frame)
@@ -158,10 +174,19 @@ class VideoAnalyzer:
                     obs["reads"] = []
                     
                 if self.anpr_engine.enabled and frame_idx % self.anpr_frame_interval == 0:
-                    # Stop processing if we already have a very high confidence read (e.g. > 90%)
                     best_conf_so_far = max([r["conf"] for r in obs["reads"]]) if obs["reads"] else 0.0
-                    if best_conf_so_far < 0.90:
+                    anpr_cooldown = float(os.environ.get("ANPR_COOLDOWN_SECONDS", "1.5"))
+                    time_since_last_anpr = current_time_sec - obs.get("last_anpr_check", 0)
+                    attempts = obs.get("attempts", 0)
+                    
+                    if best_conf_so_far < 0.90 and time_since_last_anpr >= anpr_cooldown and attempts < 3:
+                        obs["last_anpr_check"] = current_time_sec
+                        obs["attempts"] = attempts + 1
+                        
+                        t0 = time.time()
                         anpr_res = self.anpr_engine.process_vehicle(frame, box)
+                        anpr_time += (time.time() - t0)
+                        anpr_calls += 1
                         
                         if anpr_debug and (anpr_res["plate_status"] != "UNKNOWN"):
                             logger.info(f"DEBUG ANPR Track {track_id}: Plate: '{anpr_res['plate_number']}' Status: {anpr_res['plate_status']} (Det: {anpr_res['detection_confidence']}, OCR: {anpr_res['ocr_confidence']})")
@@ -179,31 +204,42 @@ class VideoAnalyzer:
                                 obs["detectionConfidence"] = anpr_res["detection_confidence"]
                                 obs["ocrConfidence"] = anpr_res["ocr_confidence"]
 
-                # Draw bounding box & track ID overlay on output frame
-                x1, y1, x2, y2 = box
-                color = (0, 255, 120) if v_class == 'car' else (255, 165, 0) if v_class in ['bus', 'truck'] else (255, 200, 0)
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                
-                label = f"ID:{track_id} {v_class}"
-                if obs["plateNumber"] and (os.environ.get("ANPR_OVERLAY_ENABLED", "true").lower() == "true" or anpr_debug):
-                    label += f" [{obs['plateNumber']} {int(obs['ocrConfidence']*100)}%]"
-                
-                cv2.putText(frame, label, (x1, max(y1 - 6, 15)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            # Draw bounding box & track ID overlay on output frame
+            if generate_video and out is not None:
+                t0 = time.time()
+                for obj in tracked_objects:
+                    track_id = obj['track_id']
+                    v_class = obj.get('class', 'car')
+                    box = obj.get('box', [0, 0, 0, 0])
+                    
+                    x1, y1, x2, y2 = box
+                    color = (0, 255, 120) if v_class == 'car' else (255, 165, 0) if v_class in ['bus', 'truck'] else (255, 200, 0)
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                    
+                    label = f"ID:{track_id} {v_class}"
+                    if track_id in plate_observations:
+                        obs = plate_observations[track_id]
+                        if obs["plateNumber"] and (os.environ.get("ANPR_OVERLAY_ENABLED", "true").lower() == "true" or anpr_debug):
+                            label += f" [{obs['plateNumber']} {int(obs['ocrConfidence']*100)}%]"
+                    
+                    cv2.putText(frame, label, (x1, max(y1 - 6, 15)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
 
-            # Draw virtual counting line
-            cv2.line(frame, (0, line_y), (width, line_y), (0, 0, 255), 2)
-            cv2.putText(frame, "COUNTING LINE", (15, line_y - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                # Draw virtual counting line
+                cv2.line(frame, (0, line_y), (width, line_y), (0, 0, 255), 2)
+                cv2.putText(frame, "COUNTING LINE", (15, line_y - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-            # Overlay HUD stats header
-            total_counted = len(crossed_ids)
-            hud_text = f"VELOSIGHT AI | Vehicles: {total_counted} | Cars: {vehicle_counts['car']} | Bikes: {vehicle_counts['motorcycle']} | Heavy: {vehicle_counts['bus'] + vehicle_counts['truck']}"
-            cv2.rectangle(frame, (0, 0), (width, 40), (15, 23, 42), -1)
-            cv2.putText(frame, hud_text, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 230, 255), 2)
+                # Overlay HUD stats header
+                total_counted = len(crossed_ids)
+                hud_text = f"VELOSIGHT AI | Vehicles: {total_counted} | Cars: {vehicle_counts['car']} | Bikes: {vehicle_counts['motorcycle']} | Heavy: {vehicle_counts['bus'] + vehicle_counts['truck']}"
+                cv2.rectangle(frame, (0, 0), (width, 40), (15, 23, 42), -1)
+                cv2.putText(frame, hud_text, (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 230, 255), 2)
 
-            out.write(frame)
+                out.write(frame)
+                render_time += (time.time() - t0)
 
         cap.release()
-        out.release()
+        if generate_video and out is not None:
+            out.release()
 
         processing_duration = round(time.time() - start_time, 2)
         total_vehicles = len(crossed_ids) if len(crossed_ids) > 0 else max_vehicles_in_frame
@@ -263,6 +299,27 @@ class VideoAnalyzer:
                 obs["plateStatus"] = "NO_PLATE_DETECTED"
 
             final_observations.append(obs)
+
+        # Print Profiling Summary
+        logger.info("=====================================")
+        logger.info("VELOSIGHT PERFORMANCE SUMMARY")
+        logger.info("=====================================")
+        logger.info(f"Video duration:       {duration_sec}s")
+        logger.info(f"Input FPS:            {fps}")
+        logger.info(f"Total frames:         {total_frames}")
+        logger.info(f"Frames Analyzed (YOLO):{yolo_calls}")
+        logger.info(f"YOLO Calls:           {yolo_calls}")
+        logger.info(f"ANPR/OCR Calls:       {anpr_calls}")
+        logger.info(f"Unique vehicles:      {len(crossed_ids) if len(crossed_ids) > 0 else max_vehicles_in_frame}")
+        logger.info(f"Recognized plates:    {len([o for o in final_observations if o['plateStatus'] == 'READ'])}")
+        logger.info(f"Processing time:      {processing_duration}s")
+        logger.info(f"Processing speed:     {round(total_frames / processing_duration, 1)} FPS")
+        logger.info(f"Video rendering:      {'ON' if generate_video else 'OFF'}")
+        logger.info("--- Component Breakdown ---")
+        logger.info(f"YOLO Time:            {round(yolo_time, 2)}s")
+        logger.info(f"ANPR Time:            {round(anpr_time, 2)}s")
+        logger.info(f"Render Time:          {round(render_time, 2)}s")
+        logger.info("=====================================")
 
         return {
             "analysisId": analysis_id,
